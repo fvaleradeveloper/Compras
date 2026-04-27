@@ -176,6 +176,9 @@
             const copyListBtn = document.getElementById('copy-list');
             const listOutput = document.getElementById('list-output');
 
+            // Cargar precios guardados globalmente (independientes del carrito)
+            const savedPrices = JSON.parse(localStorage.getItem('shoppingListPrices') || '{}');
+
             loadProducts();
             loadSavedState();
 
@@ -241,6 +244,7 @@
 
             function addToCart(checkbox) {
                 const productWrapper = checkbox.closest('.product-item');
+                const productId = checkbox.id;
                 if (!productWrapper) return;
 
                 let inline = productWrapper.querySelector('.inline-inputs');
@@ -264,6 +268,11 @@
                 const priceInput = inline.querySelector('.price-input');
                 const quantityInput = inline.querySelector('.quantity-input');
 
+                // 🔥 Cargar precio guardado si existe (para este producto)
+                if (savedPrices[productId] !== undefined && savedPrices[productId] !== '') {
+                    priceInput.value = savedPrices[productId];
+                }
+
                 setHighlight(priceInput);
                 setHighlight(quantityInput);
 
@@ -276,12 +285,19 @@
                     updateItemTotal(productWrapper);
                     setHighlight(inline.querySelector('.price-input'));
                     saveState();
+                    // Guardar precio globalmente para este producto
+                    savePriceGlobally(productId, inline.querySelector('.price-input').value);
                 });
                 inline.querySelector('.quantity-input').addEventListener('input', () => {
                     updateItemTotal(productWrapper);
                     setHighlight(inline.querySelector('.quantity-input'));
                     saveState();
                 });
+            }
+
+            function savePriceGlobally(productId, price) {
+                savedPrices[productId] = price;
+                localStorage.setItem('shoppingListPrices', JSON.stringify(savedPrices));
             }
 
             function removeFromCart(checkbox) {
@@ -320,6 +336,7 @@
             }
 
             function clearCart() {
+                // 🔥 Solo desmarca checkboxes, NO borra precios guardados
                 document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                     cb.checked = false;
                     const wrapper = cb.closest('.product-item');
@@ -380,8 +397,14 @@
                         if (!wrapper) return;
                         const priceInput = wrapper.querySelector('.price-input');
                         const qtyInput = wrapper.querySelector('.quantity-input');
-                        if (priceInput) { priceInput.value = price; setHighlight(priceInput); }
-                        if (qtyInput) { qtyInput.value = state.quantities[id] || ''; setHighlight(qtyInput); }
+                        if (priceInput) { 
+                            priceInput.value = price; 
+                            setHighlight(priceInput); 
+                        }
+                        if (qtyInput) { 
+                            qtyInput.value = state.quantities[id] || ''; 
+                            setHighlight(qtyInput); 
+                        }
                         updateItemTotal(wrapper);
                     });
                 }, 50);
