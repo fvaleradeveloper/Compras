@@ -46,6 +46,8 @@
         button:hover { background-color: #8bc5d8; }
         .calculate-btn { background-color: var(--color-accent); margin-right: 0; margin-bottom: 8px; }
         .calculate-btn:hover { background-color: #a8d4a8; }
+        #save-prices-btn { background-color: #4CAF50; color: white; margin-bottom: 8px; }
+        #save-prices-btn:hover { background-color: #43a047; }
         #generate-list { background-color: #ffb74d; color: #333; margin-bottom: 8px; }
         #generate-list:hover { background-color: #e5a53c; }
         .empty-cart { text-align: center; color: #888; padding: 15px; font-size: 0.9rem; }
@@ -102,6 +104,7 @@
                     <div>Total de la compra:</div>
                     <div class="total-amount" id="total-amount">$0.00</div>
                     <button id="calculate-total" class="calculate-btn">Calcular Total</button>
+                    <button id="save-prices-btn">💾 Guardar Precios</button>
                     <button id="generate-list">📝 Generar Lista (Texto)</button>
                     <button id="clear-cart">Limpiar Carrito</button>
                 </div>
@@ -109,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Modal para lista de texto -->
     <div id="list-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Lista para Copiar</h3>
@@ -166,34 +168,30 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const shoppingList = document.getElementById('shopping-list');
-            const cartItems = document.getElementById('cart-items');
             const totalAmount = document.getElementById('total-amount');
             const clearCartBtn = document.getElementById('clear-cart');
             const calculateTotalBtn = document.getElementById('calculate-total');
+            const savePricesBtn = document.getElementById('save-prices-btn');
             const generateListBtn = document.getElementById('generate-list');
             const modal = document.getElementById('list-modal');
             const closeModalBtn = document.getElementById('close-modal');
             const copyListBtn = document.getElementById('copy-list');
             const listOutput = document.getElementById('list-output');
 
-            // Cargar precios guardados globalmente (independientes del carrito)
-            const savedPrices = JSON.parse(localStorage.getItem('shoppingListPrices') || '{}');
+            // 🔥 Cargar precios guardados globalmente (persisten entre sesiones y limpiar carrito)
+            let savedPrices = JSON.parse(localStorage.getItem('compras_precios_v2') || '{}');
 
             loadProducts();
-            loadSavedState();
 
             function setHighlight(input) {
                 const raw = input.value || '';
                 const num = parseFloat(raw);
-                if (raw.trim() === '' || isNaN(num) || num === 0) {
-                    input.classList.add('input-highlight');
-                } else {
-                    input.classList.remove('input-highlight');
-                }
+                input.classList.toggle('input-highlight', raw.trim() === '' || isNaN(num) || num === 0);
             }
 
             calculateTotalBtn.addEventListener('click', calculateTotal);
             clearCartBtn.addEventListener('click', clearCart);
+            savePricesBtn.addEventListener('click', forceSavePrices);
             generateListBtn.addEventListener('click', generateTextList);
             closeModalBtn.addEventListener('click', () => modal.style.display = 'none');
             
@@ -204,210 +202,136 @@
                         copyListBtn.textContent = '✅ Copiado';
                         setTimeout(() => copyListBtn.textContent = 'Copiar', 1500);
                     })
-                    .catch(() => alert('No se pudo copiar. Selecciónalo y copia manualmente.'));
+                    .catch(() => alert('Copia manualmente seleccionando el texto.'));
             });
 
             function loadProducts() {
                 for (const category in productsData) {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'category';
-                    const categoryTitle = document.createElement('div');
-                    categoryTitle.className = 'category-title';
-                    categoryTitle.textContent = category;
-                    categoryDiv.appendChild(categoryTitle);
+                    const catDiv = document.createElement('div');
+                    catDiv.className = 'category';
+                    const title = document.createElement('div');
+                    title.className = 'category-title';
+                    title.textContent = category;
+                    catDiv.appendChild(title);
                     
-                    productsData[category].forEach(product => {
-                        const productItem = document.createElement('div');
-                        productItem.className = 'product-item';
-                        productItem.innerHTML = `
+                    productsData[category].forEach(p => {
+                        const item = document.createElement('div');
+                        item.className = 'product-item';
+                        item.innerHTML = `
                             <div class="product-main">
-                                <div class="checkbox-container">
-                                    <input type="checkbox" id="${product.id}" data-category="${category}">
-                                </div>
-                                <label class="product-name" for="${product.id}">${product.name}</label>
-                            </div>
-                        `;
-                        categoryDiv.appendChild(productItem);
+                                <div class="checkbox-container"><input type="checkbox" id="${p.id}"></div>
+                                <label class="product-name" for="${p.id}">${p.name}</label>
+                            </div>`;
+                        catDiv.appendChild(item);
                     });
-                    shoppingList.appendChild(categoryDiv);
+                    shoppingList.appendChild(catDiv);
                 }
 
+                // Delegación de eventos limpia
                 shoppingList.addEventListener('change', (e) => {
-                    const target = e.target;
-                    if (target && target.matches('input[type="checkbox"]')) {
-                        if (target.checked) addToCart(target);
-                        else removeFromCart(target);
-                        saveState();
+                    if (e.target.matches('input[type="checkbox"]')) {
+                        if (e.target.checked) showInputs(e.target);
+                        else hideInputs(e.target);
                     }
                 });
             }
 
-            function addToCart(checkbox) {
-                const productWrapper = checkbox.closest('.product-item');
-                const productId = checkbox.id;
-                if (!productWrapper) return;
-
-                let inline = productWrapper.querySelector('.inline-inputs');
+            function showInputs(cb) {
+                const wrapper = cb.closest('.product-item');
+                const id = cb.id;
+                let inline = wrapper.querySelector('.inline-inputs');
+                
                 if (!inline) {
                     inline = document.createElement('div');
                     inline.className = 'inline-inputs input-group';
                     inline.innerHTML = `
                         <div class="input-field">
                             <span class="input-label">Precio</span>
-                            <input type="number" class="price-input" placeholder="Precio" min="0" step="0.01">
+                            <input type="number" class="price-input" data-id="${id}" placeholder="Precio" min="0" step="0.01" value="${savedPrices[id] || ''}">
                         </div>
                         <div class="input-field">
                             <span class="input-label">Cantidad</span>
-                            <input type="number" class="quantity-input" placeholder="Cantidad" min="1">
+                            <input type="number" class="quantity-input" data-id="${id}" placeholder="Cantidad" min="1">
                         </div>
-                        <div class="item-total">$0.00</div>
-                    `;
-                    productWrapper.appendChild(inline);
+                        <div class="item-total">$0.00</div>`;
+                    wrapper.appendChild(inline);
+
+                    inline.querySelector('.price-input').addEventListener('input', (ev) => {
+                        savedPrices[id] = ev.target.value;
+                        localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+                        updateItemTotal(wrapper);
+                        setHighlight(ev.target);
+                    });
+                    
+                    inline.querySelector('.quantity-input').addEventListener('input', (ev) => {
+                        updateItemTotal(wrapper);
+                        setHighlight(ev.target);
+                    });
                 }
-
-                const priceInput = inline.querySelector('.price-input');
-                const quantityInput = inline.querySelector('.quantity-input');
-
-                // 🔥 Cargar precio guardado si existe (para este producto)
-                if (savedPrices[productId] !== undefined && savedPrices[productId] !== '') {
-                    priceInput.value = savedPrices[productId];
-                }
-
-                setHighlight(priceInput);
-                setHighlight(quantityInput);
-
-                const priceClone = priceInput.cloneNode(true);
-                const qtyClone = quantityInput.cloneNode(true);
-                priceInput.parentNode.replaceChild(priceClone, priceInput);
-                quantityInput.parentNode.replaceChild(qtyClone, quantityInput);
-
-                inline.querySelector('.price-input').addEventListener('input', () => {
-                    updateItemTotal(productWrapper);
-                    setHighlight(inline.querySelector('.price-input'));
-                    saveState();
-                    // Guardar precio globalmente para este producto
-                    savePriceGlobally(productId, inline.querySelector('.price-input').value);
-                });
-                inline.querySelector('.quantity-input').addEventListener('input', () => {
-                    updateItemTotal(productWrapper);
-                    setHighlight(inline.querySelector('.quantity-input'));
-                    saveState();
-                });
+                
+                // Asegurar que el valor guardado se muestre si es la primera vez que se muestra
+                const pInput = inline.querySelector('.price-input');
+                if (!pInput.value && savedPrices[id]) pInput.value = savedPrices[id];
+                setHighlight(pInput);
+                updateItemTotal(wrapper);
             }
 
-            function savePriceGlobally(productId, price) {
-                savedPrices[productId] = price;
-                localStorage.setItem('shoppingListPrices', JSON.stringify(savedPrices));
+            function hideInputs(cb) {
+                const wrapper = cb.closest('.product-item');
+                const inline = wrapper?.querySelector('.inline-inputs');
+                if (inline) inline.remove();
             }
 
-            function removeFromCart(checkbox) {
-                const productWrapper = checkbox.closest('.product-item');
-                if (productWrapper) {
-                    const inline = productWrapper.querySelector('.inline-inputs');
-                    if (inline) inline.remove();
-                }
-                saveState();
-            }
-
-            function updateItemTotal(container) {
-                const priceInput = container.querySelector('.price-input');
-                const quantityInput = container.querySelector('.quantity-input');
-                const itemTotal = container.querySelector('.item-total');
-                const price = parseFloat(priceInput.value) || 0;
-                const quantity = parseInt(quantityInput.value) || 0;
-                itemTotal.textContent = `$${(price * quantity).toFixed(2)}`;
+            function updateItemTotal(wrapper) {
+                const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+                const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+                wrapper.querySelector('.item-total').textContent = `$${(p * q).toFixed(2)}`;
             }
 
             function calculateTotal() {
                 let total = 0;
-                document.querySelectorAll('.product-item input[type="checkbox"]:checked').forEach(cb => {
+                document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
                     const wrapper = cb.closest('.product-item');
-                    const priceInput = wrapper.querySelector('.price-input');
-                    const quantityInput = wrapper.querySelector('.quantity-input');
-                    if (!priceInput || !quantityInput) return;
-                    const price = parseFloat(priceInput.value) || 0;
-                    const quantity = parseInt(quantityInput.value) || 0;
-                    const subtotal = price * quantity;
-                    const itemTotalEl = wrapper.querySelector('.item-total');
-                    if (itemTotalEl) itemTotalEl.textContent = `$${subtotal.toFixed(2)}`;
-                    total += subtotal;
+                    const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+                    const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+                    total += p * q;
+                    updateItemTotal(wrapper);
                 });
                 totalAmount.textContent = `$${total.toFixed(2)}`;
             }
 
             function clearCart() {
-                // 🔥 Solo desmarca checkboxes, NO borra precios guardados
-                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                // 🔥 SOLO desmarca y oculta inputs. NO toca savedPrices.
+                document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
                     cb.checked = false;
-                    const wrapper = cb.closest('.product-item');
-                    if (wrapper) {
-                        const inline = wrapper.querySelector('.inline-inputs');
-                        if (inline) inline.remove();
-                    }
+                    hideInputs(cb);
                 });
                 totalAmount.textContent = '$0.00';
-                saveState();
+            }
+
+            function forceSavePrices() {
+                localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+                const btn = savePricesBtn;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Guardado';
+                btn.style.backgroundColor = '#2e7d32';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '';
+                }, 2000);
             }
 
             function generateTextList() {
-                const checked = document.querySelectorAll('.product-item input[type="checkbox"]:checked');
-                if (checked.length === 0) {
-                    alert('Marca al menos un producto para generar la lista.');
-                    return;
-                }
-                let text = '';
-                checked.forEach(cb => {
+                const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+                if (!checked.length) return alert('Marca al menos un producto.');
+                let text = Array.from(checked).map(cb => {
                     const wrapper = cb.closest('.product-item');
                     const name = wrapper.querySelector('.product-name').textContent;
-                    const qtyInput = wrapper.querySelector('.quantity-input');
-                    let qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-                    text += `${name}: ${qty}\n`;
-                });
-                listOutput.value = text.trim();
+                    const qty = parseInt(wrapper.querySelector('.quantity-input')?.value) || 1;
+                    return `${name}: ${qty}`;
+                }).join('\n');
+                listOutput.value = text;
                 modal.style.display = 'flex';
-            }
-
-            function saveState() {
-                const state = { checkedItems: [], prices: {}, quantities: {} };
-                document.querySelectorAll('.product-item input[type="checkbox"]:checked').forEach(cb => {
-                    state.checkedItems.push(cb.id);
-                    const wrapper = cb.closest('.product-item');
-                    state.prices[cb.id] = wrapper.querySelector('.price-input')?.value || '';
-                    state.quantities[cb.id] = wrapper.querySelector('.quantity-input')?.value || '';
-                });
-                localStorage.setItem('shoppingListState', JSON.stringify(state));
-            }
-
-            function loadSavedState() {
-                const saved = localStorage.getItem('shoppingListState');
-                if (!saved) return;
-                const state = JSON.parse(saved);
-                state.checkedItems.forEach(id => {
-                    const cb = document.getElementById(id);
-                    if (cb && !cb.checked) {
-                        cb.checked = true;
-                        cb.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                });
-                setTimeout(() => {
-                    Object.entries(state.prices).forEach(([id, price]) => {
-                        const cb = document.getElementById(id);
-                        if (!cb) return;
-                        const wrapper = cb.closest('.product-item');
-                        if (!wrapper) return;
-                        const priceInput = wrapper.querySelector('.price-input');
-                        const qtyInput = wrapper.querySelector('.quantity-input');
-                        if (priceInput) { 
-                            priceInput.value = price; 
-                            setHighlight(priceInput); 
-                        }
-                        if (qtyInput) { 
-                            qtyInput.value = state.quantities[id] || ''; 
-                            setHighlight(qtyInput); 
-                        }
-                        updateItemTotal(wrapper);
-                    });
-                }, 50);
             }
         });
     </script>
