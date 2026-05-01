@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Lista de Compras Interactiva + Checklist dinámica</title>
+    <title>Lista de Compras</title>
     <style>
         :root {
             --color-primary: #a8d8ea;
@@ -35,6 +35,1348 @@
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: var(--color-primary);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--color-border);
+        }
+        
+        h1 {
+            color: var(--color-title);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .description {
+            font-size: 0.95rem;
+            color: #555;
+            font-style: italic;
+        }
+        /* Menú lateral deslizante */
+        .menu-tab {
+            position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+            background: var(--color-primary); color: var(--color-title);
+            width: 50px; height: 70px; display: flex; align-items: center; justify-content: center;
+            border-radius: 12px 0 0 12px; cursor: pointer; z-index: 998;
+            box-shadow: -2px 2px 6px rgba(0,0,0,0.2); font-size: 1.5rem;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .menu-tab:active { transform: translateY(-50%) scale(0.95); }
+        .menu-tab:hover { background: #8bc5d8; }
+        .menu-backdrop {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 999; opacity: 0; transition: opacity 0.3s;
+        }
+        .menu-backdrop.active { display: block; opacity: 1; }
+        .side-menu {
+            position: fixed; top: 0; right: 0;
+            width: 85vw; max-width: 340px; height: 100%;
+            background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+            z-index: 1000; transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .side-menu.open { transform: translateX(0); }
+        .menu-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);
+        }
+        .menu-header span { font-weight: bold; color: var(--color-title); font-size: 1.2rem; }
+        .close-menu-btn {
+            background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #666; padding: 5px;
+        }
+        .menu-btn {
+            width: 100%; margin: 8px 0; padding: 14px; border-radius: 8px;
+            text-align: left; font-size: 0.95rem; font-weight: 600;
+            transition: filter 0.2s, transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.98); }
+        .menu-btn:hover { filter: brightness(0.95); }
+        .total-display {
+            background: var(--color-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .total-display .label { font-size: 0.9rem; color: #555; }
+        .total-display .amount { font-size: 1.5rem; font-weight: bold; color: var(--color-title); margin-top: 5px; }
+        .content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        
+        .shopping-list {
+            padding: 15px;
+        }
+        
+        .category {
+            margin-bottom: 20px;
+        }
+        
+        .category-title {
+            background-color: var(--color-accent);
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--color-text);
+            font-size: 0.9rem;
+        }
+        
+        .product-item {
+            display: flex;
+            flex-direction: column;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 8px;
+        }
+        
+        .product-main {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .checkbox-container {
+            margin-right: 8px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .product-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        .inline-inputs {
+            width: 100%;
+            padding: 8px 0;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .input-field {
+            flex: 1;
+            min-width: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-title);
+        }
+        
+        .price-input, .quantity-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            text-align: right;
+            font-size: 0.9rem;
+            transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
+        }
+        
+        .item-total {
+            font-weight: bold;
+            color: var(--color-title);
+            text-align: right;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            min-width: 80px;
+            align-self: center;
+        }
+        
+        button {
+            background-color: var(--color-primary);
+            color: var(--color-text);
+            border: none;
+            padding: 10px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #8bc5d8;
+        }
+        /* Pantalla de lista generada */
+        .generated-list-view {
+            display: none;
+            padding: 15px;
+        }
+        .generated-list-view.active {
+            display: block;
+        }
+        .generated-list-view h2 {
+            color: var(--color-title);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+        .generated-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .generated-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #e0c9f1;
+            background-color: white;
+            transition: background 0.2s;
+        }
+        .generated-checklist li:hover {
+            background-color: #fff3e0;
+        }
+        .generated-checklist li.completed {
+            order: 999;
+        }
+        .generated-checklist li.completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .generated-checklist .task-text {
+            flex: 1;
+            font-size: 1rem;
+            word-break: break-word;
+        }
+        .generated-checklist .task-qty {
+            font-size: 0.85rem;
+            color: #666;
+            min-width: 60px;
+            text-align: right;
+        }
+        .back-btn {
+            background-color: var(--color-title);
+            color: white;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover {
+            background-color: #1a4480;
+        }
+        /* Media queries responsivo */
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            .container {
+                max-width: 1000px;
+                border-radius: 15px;
+            }
+            header {
+                padding: 25px;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+            .content {
+                flex-direction: row;
+            }
+            .shopping-list {
+                flex: 1;
+                padding: 20px;
+            }
+            .product-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            .product-main {
+                width: auto;
+                flex: 1;
+            }
+            .inline-inputs {
+                width: auto;
+                padding: 0;
+            }
+            .input-group {
+                flex-wrap: nowrap;
+                width: auto;
+            }
+            .input-field {
+                min-width: 80px;
+            }
+            .price-input, .quantity-input {
+                width: 80px;
+            }
+            button {
+                width: auto;
+                padding: 10px 15px;
+                font-size: 1rem;
+            }
+            .menu-tab { top: 80px; transform: none; }
+        }
+        
+        @media (max-width: 360px) {
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .input-field {
+                min-width: 100%;
+            }
+            .price-input, .quantity-input {
+                width: 100%;
+            }
+            .item-total {
+                text-align: left;
+                padding-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Lista de Compras</h1>
+        <p class="description">Agregue precio y cantidad a comprar, y despliegue el menu para opciones.</p>
+    </header>
+    <!-- Botón menú lateral -->
+    <div id="menu-tab" class="menu-tab" title="Opciones">☰</div>
+    <div id="menu-backdrop" class="menu-backdrop"></div>
+    
+    <!-- Menú lateral con opciones -->
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <span>Opciones</span>
+            <button id="close-menu" class="close-menu-btn">✕</button>
+        </div>
+        
+        <!-- Total de la lista de compras -->
+        <div class="total-display">
+            <div class="label">Total de la lista:</div>
+            <div class="amount" id="menu-total">$0.00</div>
+        </div>
+        
+        <!-- Botones de funciones -->
+        <button id="calculate-total" class="menu-btn">🔢 Calcular el total</button>
+        <button id="save-prices-btn" class="menu-btn">💾 Guardar precios</button>
+        <button id="generate-list" class="menu-btn">📝 Generar lista</button>
+        <button id="clear-cart" class="menu-btn">🗑️ Limpiar lista</button>
+        <button id="delete-all" class="menu-btn">🧹 Borrar todo</button>
+    </div>
+    <!-- Vista principal: lista de productos disponibles -->
+    <div id="main-view" class="content">
+        <div class="shopping-list" id="shopping-list">
+            <!-- Los productos se cargarán dinámicamente -->
+        </div>
+    </div>
+    <!-- Vista de lista generada -->
+    <div id="generated-list-view" class="generated-list-view">
+        <button id="back-to-main" class="back-btn">← Volver</button>
+        <h2>Artículos a comprar</h2>
+        <ul id="generated-checklist" class="generated-checklist">
+            <!-- Lista generada aquí -->
+        </ul>
+    </div>
+</div>
+<script>
+    // Datos de productos
+    const productsData = {
+        "CARNES": [
+            { "id": "pollo", "name": "Pollo" },
+            { "id": "huevos", "name": "Huevos" },
+            { "id": "carne-res", "name": "Carne de res" },
+            { "id": "pescado", "name": "Pescado" },
+            { "id": "cochino", "name": "Chancho" }
+        ],
+        "VEGETALES": [
+            { "id": "brocoli", "name": "Brócoli" },
+            { "id": "lechuga", "name": "Lechuga" },
+            { "id": "cebolla", "name": "Cebolla" },
+            { "id": "ajo", "name": "Ajo" },
+            { "id": "zanahoria", "name": "Zanahoria" },
+            { "id": "repollo", "name": "Repollo" },
+            { "id": "auyama", "name": "Auyama" },
+            { "id": "pepino", "name": "Pepino" },
+            { "id": "remolacha", "name": "Remolacha" },
+            { "id": "calabacin", "name": "Calabacín" },
+            { "id": "aji-rojo", "name": "Ají rojo" },
+            { "id": "aji-verde", "name": "Ají verde" },
+            { "id": "aji-amarillo", "name": "Ají amarillo" },
+            { "id": "pimenton", "name": "Pimentón" },
+            { "id": "maiz", "name": "Choclo" },
+            { "id": "tomate", "name": "Tomate" },
+            { "id": "espinaca", "name": "Espinaca" }
+        ],
+        "FRUTAS": [
+            { "id": "cambur", "name": "Cambur" },
+            { "id": "platano", "name": "Plátano" },
+            { "id": "uvas", "name": "Uvas" },
+            { "id": "naranjas", "name": "Naranjas" },
+            { "id": "limon", "name": "Limón" },
+            { "id": "manzana", "name": "Manzana" }
+        ],
+        "CEREALES Y SEMILLAS": [
+            { "id": "quinua", "name": "Quinua" },
+            { "id": "avena", "name": "Avena" },
+            { "id": "chia", "name": "Chía" },
+            { "id": "almendras", "name": "Almendras" },
+            { "id": "nueces", "name": "Nueces" },
+            { "id": "semillas-calabaza", "name": "Semillas de calabaza" },
+            { "id": "ajonjoli", "name": "Ajonjolí" }
+        ],
+        "OTROS": [
+            { "id": "aceite-oliva", "name": "Aceite de oliva" },
+            { "id": "manteca", "name": "Manteca" },
+            { "id": "leche", "name": "leche" },
+            { "id": "yogurt", "name": "Yogurt" },
+            { "id": "queso", "name": "Queso" }
+        ],
+        "LIMPIEZA Y OTROS": [
+            { "id": "cloro", "name": "Cloro" },
+            { "id": "Desinfectante", "name": "Desinfectante" },
+            { "id": "detergente", "name": "Detergente" },
+            { "id": "champú", "name": "Champú" },
+            { "id": "acondicionador", "name": "Acondicionador" },
+            { "id": "jabondebano", "name": "Jabón baño" },
+            { "id": "desodorante", "name": "Desodorante" },
+            { "id": "papelhigienico", "name": "Papel Toilet" },
+            { "id": "desengrasante", "name": "Desengrasante" },
+            { "id": "lavavajilla", "name": "Lava vajilla" }
+        ]
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elementos del DOM
+        const shoppingList = document.getElementById('shopping-list');
+        const mainView = document.getElementById('main-view');
+        const generatedListView = document.getElementById('generated-list-view');
+        const generatedChecklist = document.getElementById('generated-checklist');
+        const menuTotal = document.getElementById('menu-total');
+        
+        // Elementos del menú lateral
+        const menuTab = document.getElementById('menu-tab');
+        const sideMenu = document.getElementById('side-menu');
+        const menuBackdrop = document.getElementById('menu-backdrop');
+        const closeMenuBtn = document.getElementById('close-menu');
+        
+        // Botones del menú
+        const calculateTotalBtn = document.getElementById('calculate-total');
+        const savePricesBtn = document.getElementById('save-prices-btn');
+        const generateListBtn = document.getElementById('generate-list');
+        const clearCartBtn = document.getElementById('clear-cart');
+        const deleteAllBtn = document.getElementById('delete-all');
+        const backToMainBtn = document.getElementById('back-to-main');
+        // Precios guardados en localStorage
+        let savedPrices = JSON.parse(localStorage.getItem('compras_precios_v2') || '{}');
+        // Funciones del menú lateral
+        function openMenu() { 
+            updateMenuTotal();
+            sideMenu.classList.add('open'); 
+            menuBackdrop.classList.add('active'); 
+        }
+        function closeMenu() { 
+            sideMenu.classList.remove('open'); 
+            menuBackdrop.classList.remove('active'); 
+        }
+        menuTab.addEventListener('click', openMenu);
+        menuBackdrop.addEventListener('click', closeMenu);
+        closeMenuBtn.addEventListener('click', closeMenu);
+        // Cargar productos
+        function loadProducts() {
+            for (const category in productsData) {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'category';
+                
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category;
+                catDiv.appendChild(title);
+                
+                productsData[category].forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'product-item';
+                    item.innerHTML = `
+                        <div class="product-main">
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="${p.id}" data-name="${p.name}">
+                            </div>
+                            <label class="product-name" for="${p.id}">${p.name}</label>
+                        </div>`;
+                    catDiv.appendChild(item);
+                });
+                shoppingList.appendChild(catDiv);
+            }
+            shoppingList.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="checkbox"]')) {
+                    if (e.target.checked) {
+                        showInputs(e.target);
+                    } else {
+                        hideInputs(e.target);
+                    }
+                    updateMenuTotal();
+                }
+            });
+        }
+        // Mostrar inputs cuando se marca un checkbox
+        function showInputs(cb) {
+            const wrapper = cb.closest('.product-item');
+            const id = cb.id;
+            let inline = wrapper.querySelector('.inline-inputs');
+            
+            if (!inline) {
+                inline = document.createElement('div');
+                inline.className = 'inline-inputs input-group';
+                inline.innerHTML = `
+                    <div class="input-field">
+                        <span class="input-label">Precio</span>
+                        <input type="number" class="price-input" data-id="${id}" placeholder="Precio" min="0" step="0.01" value="${savedPrices[id] || ''}">
+                    </div>
+                    <div class="input-field">
+                        <span class="input-label">Cantidad</span>
+                        <input type="number" class="quantity-input" data-id="${id}" placeholder="Cantidad" min="1">
+                    </div>
+                    <div class="item-total">$0.00</div>`;
+                wrapper.appendChild(inline);
+                inline.querySelector('.price-input').addEventListener('input', (ev) => {
+                    savedPrices[id] = ev.target.value;
+                    localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+                    updateItemTotal(wrapper);
+                    updateMenuTotal();
+                });
+                inline.querySelector('.quantity-input').addEventListener('input', (ev) => {
+                    updateItemTotal(wrapper);
+                    updateMenuTotal();
+                });
+            }
+            const pInput = inline.querySelector('.price-input');
+            if (!pInput.value && savedPrices[id]) pInput.value = savedPrices[id];
+            updateItemTotal(wrapper);
+        }
+        // Ocultar inputs cuando se desmarca un checkbox
+        function hideInputs(cb) {
+            const wrapper = cb.closest('.product-item');
+            const inline = wrapper?.querySelector('.inline-inputs');
+            if (inline) inline.remove();
+        }
+        // Actualizar total del item
+        function updateItemTotal(wrapper) {
+            const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+            const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+            wrapper.querySelector('.item-total').textContent = `$${(p * q).toFixed(2)}`;
+        }
+        // Actualizar total en el menú
+        function updateMenuTotal() {
+            let total = 0;
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const wrapper = cb.closest('.product-item');
+                const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+                const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+                total += p * q;
+            });
+            menuTotal.textContent = `$${total.toFixed(2)}`;
+        }
+        // Calcular total
+        calculateTotalBtn.addEventListener('click', () => {
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Guardar precios
+        savePricesBtn.addEventListener('click', () => {
+            localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+            savePricesBtn.textContent = '✅ Guardado';
+            savePricesBtn.style.background = '#2e7d32';
+            setTimeout(() => {
+                savePricesBtn.textContent = '💾 Guardar precios';
+                savePricesBtn.style.background = '';
+            }, 1500);
+            closeMenu();
+        });
+        // Generar lista
+        generateListBtn.addEventListener('click', () => {
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+            if (!checked.length) {
+                alert('Seleccione al menos un producto.');
+                closeMenu();
+                return;
+            }
+            
+            generatedChecklist.innerHTML = '';
+            
+            Array.from(checked).forEach(cb => {
+                const wrapper = cb.closest('.product-item');
+                const name = wrapper.querySelector('.product-name').textContent;
+                const qty = parseInt(wrapper.querySelector('.quantity-input')?.value) || 1;
+                
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <input type="checkbox" class="checklist-checkbox">
+                    <span class="task-text">${name}</span>
+                    <span class="task-qty">x${qty}</span>`;
+                
+                const checkbox = li.querySelector('.checklist-checkbox');
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        li.classList.add('completed');
+                    } else {
+                        li.classList.remove('completed');
+                    }
+                });
+                
+                generatedChecklist.appendChild(li);
+            });
+            
+            mainView.style.display = 'none';
+            generatedListView.classList.add('active');
+            closeMenu();
+        });
+        // Limpiar lista (desmarcar todos los checkboxes)
+        clearCartBtn.addEventListener('click', () => {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                hideInputs(cb);
+            });
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Borrar todo (igual que limpiar lista)
+        deleteAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                hideInputs(cb);
+            });
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Volver a la vista principal
+        backToMainBtn.addEventListener('click', () => {
+            generatedListView.classList.remove('active');
+            mainView.style.display = 'flex';
+        });
+        // Inicializar
+        loadProducts();
+    });
+</script>
+</body>
+</html>
+HTMLEOF
+cat > /workspace/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Lista de Compras</title>
+    <style>
+        :root {
+            --color-primary: #a8d8ea;
+            --color-secondary: #ffd6e7;
+            --color-accent: #c1e1c1;
+            --color-background: #fff9f5;
+            --color-text: #333333;
+            --color-border: #e0c9f1;
+            --color-title: #2c5aa0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.6;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: var(--color-primary);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--color-border);
+        }
+        
+        h1 {
+            color: var(--color-title);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .description {
+            font-size: 0.95rem;
+            color: #555;
+            font-style: italic;
+        }
+        /* Menú lateral deslizante */
+        .menu-tab {
+            position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+            background: var(--color-primary); color: var(--color-title);
+            width: 50px; height: 70px; display: flex; align-items: center; justify-content: center;
+            border-radius: 12px 0 0 12px; cursor: pointer; z-index: 998;
+            box-shadow: -2px 2px 6px rgba(0,0,0,0.2); font-size: 1.5rem;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .menu-tab:active { transform: translateY(-50%) scale(0.95); }
+        .menu-tab:hover { background: #8bc5d8; }
+        .menu-backdrop {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 999; opacity: 0; transition: opacity 0.3s;
+        }
+        .menu-backdrop.active { display: block; opacity: 1; }
+        .side-menu {
+            position: fixed; top: 0; right: 0;
+            width: 85vw; max-width: 340px; height: 100%;
+            background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+            z-index: 1000; transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .side-menu.open { transform: translateX(0); }
+        .menu-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);
+        }
+        .menu-header span { font-weight: bold; color: var(--color-title); font-size: 1.2rem; }
+        .close-menu-btn {
+            background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #666; padding: 5px;
+        }
+        .menu-btn {
+            width: 100%; margin: 8px 0; padding: 14px; border-radius: 8px;
+            text-align: left; font-size: 0.95rem; font-weight: 600;
+            transition: filter 0.2s, transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.98); }
+        .menu-btn:hover { filter: brightness(0.95); }
+        .total-display {
+            background: var(--color-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .total-display .label { font-size: 0.9rem; color: #555; }
+        .total-display .amount { font-size: 1.5rem; font-weight: bold; color: var(--color-title); margin-top: 5px; }
+        .content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        
+        .shopping-list {
+            padding: 15px;
+        }
+        
+        .category {
+            margin-bottom: 20px;
+        }
+        
+        .category-title {
+            background-color: var(--color-accent);
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--color-text);
+            font-size: 0.9rem;
+        }
+        
+        .product-item {
+            display: flex;
+            flex-direction: column;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 8px;
+        }
+        
+        .product-main {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .checkbox-container {
+            margin-right: 8px;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .product-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        
+        .inline-inputs {
+            width: 100%;
+            padding: 8px 0;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .input-field {
+            flex: 1;
+            min-width: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-title);
+        }
+        
+        .price-input, .quantity-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            text-align: right;
+            font-size: 0.9rem;
+            transition: background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
+        }
+        
+        .item-total {
+            font-weight: bold;
+            color: var(--color-title);
+            text-align: right;
+            padding: 8px 0;
+            font-size: 0.9rem;
+            min-width: 80px;
+            align-self: center;
+        }
+        
+        button {
+            background-color: var(--color-primary);
+            color: var(--color-text);
+            border: none;
+            padding: 10px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #8bc5d8;
+        }
+        /* Pantalla de lista generada */
+        .generated-list-view {
+            display: none;
+            padding: 15px;
+        }
+        .generated-list-view.active {
+            display: block;
+        }
+        .generated-list-view h2 {
+            color: var(--color-title);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+        .generated-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .generated-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-bottom: 1px solid #e0c9f1;
+            background-color: white;
+            transition: background 0.2s;
+        }
+        .generated-checklist li:hover {
+            background-color: #fff3e0;
+        }
+        .generated-checklist li.completed {
+            order: 999;
+        }
+        .generated-checklist li.completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .generated-checklist .task-text {
+            flex: 1;
+            font-size: 1rem;
+            word-break: break-word;
+        }
+        .generated-checklist .task-qty {
+            font-size: 0.85rem;
+            color: #666;
+            min-width: 60px;
+            text-align: right;
+        }
+        .back-btn {
+            background-color: var(--color-title);
+            color: white;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover {
+            background-color: #1a4480;
+        }
+        /* Media queries responsivo */
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+            .container {
+                max-width: 1000px;
+                border-radius: 15px;
+            }
+            header {
+                padding: 25px;
+            }
+            h1 {
+                font-size: 2.2rem;
+            }
+            .content {
+                flex-direction: row;
+            }
+            .shopping-list {
+                flex: 1;
+                padding: 20px;
+            }
+            .product-item {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+            .product-main {
+                width: auto;
+                flex: 1;
+            }
+            .inline-inputs {
+                width: auto;
+                padding: 0;
+            }
+            .input-group {
+                flex-wrap: nowrap;
+                width: auto;
+            }
+            .input-field {
+                min-width: 80px;
+            }
+            .price-input, .quantity-input {
+                width: 80px;
+            }
+            button {
+                width: auto;
+                padding: 10px 15px;
+                font-size: 1rem;
+            }
+            .menu-tab { top: 80px; transform: none; }
+        }
+        
+        @media (max-width: 360px) {
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .input-field {
+                min-width: 100%;
+            }
+            .price-input, .quantity-input {
+                width: 100%;
+            }
+            .item-total {
+                text-align: left;
+                padding-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Lista de Compras</h1>
+        <p class="description">Agregue precio y cantidad a comprar, y despliegue el menu para opciones.</p>
+    </header>
+    <!-- Botón menú lateral -->
+    <div id="menu-tab" class="menu-tab" title="Opciones">☰</div>
+    <div id="menu-backdrop" class="menu-backdrop"></div>
+    
+    <!-- Menú lateral con opciones -->
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <span>Opciones</span>
+            <button id="close-menu" class="close-menu-btn">✕</button>
+        </div>
+        
+        <!-- Total de la lista de compras -->
+        <div class="total-display">
+            <div class="label">Total de la lista:</div>
+            <div class="amount" id="menu-total">$0.00</div>
+        </div>
+        
+        <!-- Botones de funciones -->
+        <button id="calculate-total" class="menu-btn">🔢 Calcular el total</button>
+        <button id="save-prices-btn" class="menu-btn">💾 Guardar precios</button>
+        <button id="generate-list" class="menu-btn">📝 Generar lista</button>
+        <button id="clear-cart" class="menu-btn">🗑️ Limpiar lista</button>
+        <button id="delete-all" class="menu-btn">🧹 Borrar todo</button>
+    </div>
+    <!-- Vista principal: lista de productos disponibles -->
+    <div id="main-view" class="content">
+        <div class="shopping-list" id="shopping-list">
+            <!-- Los productos se cargarán dinámicamente -->
+        </div>
+    </div>
+    <!-- Vista de lista generada -->
+    <div id="generated-list-view" class="generated-list-view">
+        <button id="back-to-main" class="back-btn">← Volver</button>
+        <h2>Artículos a comprar</h2>
+        <ul id="generated-checklist" class="generated-checklist">
+            <!-- Lista generada aquí -->
+        </ul>
+    </div>
+</div>
+<script>
+    // Datos de productos
+    const productsData = {
+        "CARNES": [
+            { "id": "pollo", "name": "Pollo" },
+            { "id": "huevos", "name": "Huevos" },
+            { "id": "carne-res", "name": "Carne de res" },
+            { "id": "pescado", "name": "Pescado" },
+            { "id": "cochino", "name": "Chancho" }
+        ],
+        "VEGETALES": [
+            { "id": "brocoli", "name": "Brócoli" },
+            { "id": "lechuga", "name": "Lechuga" },
+            { "id": "cebolla", "name": "Cebolla" },
+            { "id": "ajo", "name": "Ajo" },
+            { "id": "zanahoria", "name": "Zanahoria" },
+            { "id": "repollo", "name": "Repollo" },
+            { "id": "auyama", "name": "Auyama" },
+            { "id": "pepino", "name": "Pepino" },
+            { "id": "remolacha", "name": "Remolacha" },
+            { "id": "calabacin", "name": "Calabacín" },
+            { "id": "aji-rojo", "name": "Ají rojo" },
+            { "id": "aji-verde", "name": "Ají verde" },
+            { "id": "aji-amarillo", "name": "Ají amarillo" },
+            { "id": "pimenton", "name": "Pimentón" },
+            { "id": "maiz", "name": "Choclo" },
+            { "id": "tomate", "name": "Tomate" },
+            { "id": "espinaca", "name": "Espinaca" }
+        ],
+        "FRUTAS": [
+            { "id": "cambur", "name": "Cambur" },
+            { "id": "platano", "name": "Plátano" },
+            { "id": "uvas", "name": "Uvas" },
+            { "id": "naranjas", "name": "Naranjas" },
+            { "id": "limon", "name": "Limón" },
+            { "id": "manzana", "name": "Manzana" }
+        ],
+        "CEREALES Y SEMILLAS": [
+            { "id": "quinua", "name": "Quinua" },
+            { "id": "avena", "name": "Avena" },
+            { "id": "chia", "name": "Chía" },
+            { "id": "almendras", "name": "Almendras" },
+            { "id": "nueces", "name": "Nueces" },
+            { "id": "semillas-calabaza", "name": "Semillas de calabaza" },
+            { "id": "ajonjoli", "name": "Ajonjolí" }
+        ],
+        "OTROS": [
+            { "id": "aceite-oliva", "name": "Aceite de oliva" },
+            { "id": "manteca", "name": "Manteca" },
+            { "id": "leche", "name": "leche" },
+            { "id": "yogurt", "name": "Yogurt" },
+            { "id": "queso", "name": "Queso" }
+        ],
+        "LIMPIEZA Y OTROS": [
+            { "id": "cloro", "name": "Cloro" },
+            { "id": "Desinfectante", "name": "Desinfectante" },
+            { "id": "detergente", "name": "Detergente" },
+            { "id": "champú", "name": "Champú" },
+            { "id": "acondicionador", "name": "Acondicionador" },
+            { "id": "jabondebano", "name": "Jabón baño" },
+            { "id": "desodorante", "name": "Desodorante" },
+            { "id": "papelhigienico", "name": "Papel Toilet" },
+            { "id": "desengrasante", "name": "Desengrasante" },
+            { "id": "lavavajilla", "name": "Lava vajilla" }
+        ]
+    };
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elementos del DOM
+        const shoppingList = document.getElementById('shopping-list');
+        const mainView = document.getElementById('main-view');
+        const generatedListView = document.getElementById('generated-list-view');
+        const generatedChecklist = document.getElementById('generated-checklist');
+        const menuTotal = document.getElementById('menu-total');
+        
+        // Elementos del menú lateral
+        const menuTab = document.getElementById('menu-tab');
+        const sideMenu = document.getElementById('side-menu');
+        const menuBackdrop = document.getElementById('menu-backdrop');
+        const closeMenuBtn = document.getElementById('close-menu');
+        
+        // Botones del menú
+        const calculateTotalBtn = document.getElementById('calculate-total');
+        const savePricesBtn = document.getElementById('save-prices-btn');
+        const generateListBtn = document.getElementById('generate-list');
+        const clearCartBtn = document.getElementById('clear-cart');
+        const deleteAllBtn = document.getElementById('delete-all');
+        const backToMainBtn = document.getElementById('back-to-main');
+        // Precios guardados en localStorage
+        let savedPrices = JSON.parse(localStorage.getItem('compras_precios_v2') || '{}');
+        // Funciones del menú lateral
+        function openMenu() { 
+            updateMenuTotal();
+            sideMenu.classList.add('open'); 
+            menuBackdrop.classList.add('active'); 
+        }
+        function closeMenu() { 
+            sideMenu.classList.remove('open'); 
+            menuBackdrop.classList.remove('active'); 
+        }
+        menuTab.addEventListener('click', openMenu);
+        menuBackdrop.addEventListener('click', closeMenu);
+        closeMenuBtn.addEventListener('click', closeMenu);
+        // Cargar productos
+        function loadProducts() {
+            for (const category in productsData) {
+                const catDiv = document.createElement('div');
+                catDiv.className = 'category';
+                
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category;
+                catDiv.appendChild(title);
+                
+                productsData[category].forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'product-item';
+                    item.innerHTML = `
+                        <div class="product-main">
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="${p.id}" data-name="${p.name}">
+                            </div>
+                            <label class="product-name" for="${p.id}">${p.name}</label>
+                        </div>`;
+                    catDiv.appendChild(item);
+                });
+                shoppingList.appendChild(catDiv);
+            }
+            shoppingList.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="checkbox"]')) {
+                    if (e.target.checked) {
+                        showInputs(e.target);
+                    } else {
+                        hideInputs(e.target);
+                    }
+                    updateMenuTotal();
+                }
+            });
+        }
+        // Mostrar inputs cuando se marca un checkbox
+        function showInputs(cb) {
+            const wrapper = cb.closest('.product-item');
+            const id = cb.id;
+            let inline = wrapper.querySelector('.inline-inputs');
+            
+            if (!inline) {
+                inline = document.createElement('div');
+                inline.className = 'inline-inputs input-group';
+                inline.innerHTML = `
+                    <div class="input-field">
+                        <span class="input-label">Precio</span>
+                        <input type="number" class="price-input" data-id="${id}" placeholder="Precio" min="0" step="0.01" value="${savedPrices[id] || ''}">
+                    </div>
+                    <div class="input-field">
+                        <span class="input-label">Cantidad</span>
+                        <input type="number" class="quantity-input" data-id="${id}" placeholder="Cantidad" min="1">
+                    </div>
+                    <div class="item-total">$0.00</div>`;
+                wrapper.appendChild(inline);
+                inline.querySelector('.price-input').addEventListener('input', (ev) => {
+                    savedPrices[id] = ev.target.value;
+                    localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+                    updateItemTotal(wrapper);
+                    updateMenuTotal();
+                });
+                inline.querySelector('.quantity-input').addEventListener('input', (ev) => {
+                    updateItemTotal(wrapper);
+                    updateMenuTotal();
+                });
+            }
+            const pInput = inline.querySelector('.price-input');
+            if (!pInput.value && savedPrices[id]) pInput.value = savedPrices[id];
+            updateItemTotal(wrapper);
+        }
+        // Ocultar inputs cuando se desmarca un checkbox
+        function hideInputs(cb) {
+            const wrapper = cb.closest('.product-item');
+            const inline = wrapper?.querySelector('.inline-inputs');
+            if (inline) inline.remove();
+        }
+        // Actualizar total del item
+        function updateItemTotal(wrapper) {
+            const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+            const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+            wrapper.querySelector('.item-total').textContent = `$${(p * q).toFixed(2)}`;
+        }
+        // Actualizar total en el menú
+        function updateMenuTotal() {
+            let total = 0;
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const wrapper = cb.closest('.product-item');
+                const p = parseFloat(wrapper.querySelector('.price-input')?.value) || 0;
+                const q = parseInt(wrapper.querySelector('.quantity-input')?.value) || 0;
+                total += p * q;
+            });
+            menuTotal.textContent = `$${total.toFixed(2)}`;
+        }
+        // Calcular total
+        calculateTotalBtn.addEventListener('click', () => {
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Guardar precios
+        savePricesBtn.addEventListener('click', () => {
+            localStorage.setItem('compras_precios_v2', JSON.stringify(savedPrices));
+            savePricesBtn.textContent = '✅ Guardado';
+            savePricesBtn.style.background = '#2e7d32';
+            setTimeout(() => {
+                savePricesBtn.textContent = '💾 Guardar precios';
+                savePricesBtn.style.background = '';
+            }, 1500);
+            closeMenu();
+        });
+        // Generar lista
+        generateListBtn.addEventListener('click', () => {
+            const checked = document.querySelectorAll('input[type="checkbox"]:checked');
+            if (!checked.length) {
+                alert('Seleccione al menos un producto.');
+                closeMenu();
+                return;
+            }
+            
+            generatedChecklist.innerHTML = '';
+            
+            Array.from(checked).forEach(cb => {
+                const wrapper = cb.closest('.product-item');
+                const name = wrapper.querySelector('.product-name').textContent;
+                const qty = parseInt(wrapper.querySelector('.quantity-input')?.value) || 1;
+                
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <input type="checkbox" class="checklist-checkbox">
+                    <span class="task-text">${name}</span>
+                    <span class="task-qty">x${qty}</span>`;
+                
+                const checkbox = li.querySelector('.checklist-checkbox');
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        li.classList.add('completed');
+                    } else {
+                        li.classList.remove('completed');
+                    }
+                });
+                
+                generatedChecklist.appendChild(li);
+            });
+            
+            mainView.style.display = 'none';
+            generatedListView.classList.add('active');
+            closeMenu();
+        });
+        // Limpiar lista (desmarcar todos los checkboxes)
+        clearCartBtn.addEventListener('click', () => {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                hideInputs(cb);
+            });
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Borrar todo (igual que limpiar lista)
+        deleteAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                hideInputs(cb);
+            });
+            updateMenuTotal();
+            closeMenu();
+        });
+        // Volver a la vista principal
+        backToMainBtn.addEventListener('click', () => {
+            generatedListView.classList.remove('active');
+            mainView.style.display = 'flex';
+        });
+        // Inicializar
+        loadProducts();
+    });
+</script>
+</body>
+</html>
+HTMLEOF
+$ wc -l /workspace/index.html && head -n 10 /workspace/index.html && echo "..." && tail -n 10 /workspace/index.html
+wc -l /workspace/index.html && head -n 10 /workspace/index.html && echo "..." && tail -n 10 /workspace/index.html
+936 /workspace/index.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Lista de Compras</title>
+    <style>
+        :root {
+            --color-primary: #a8d8ea;
+            --color-secondary: #ffd6e7;
+...
+                    const qty = parseInt(wrapper.querySelector('.quantity-input')?.value) || 1;
+                    return `${name}: ${qty}`;
+                }).join('\n');
+                listOutput.value = text;
+                modal.style.display = 'flex';
+            }
+        });
+    </script>
+</body>
+</html>            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
         
