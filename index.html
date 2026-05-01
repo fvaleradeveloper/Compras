@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Lista de Compras Interactiva + Checklist dinámica</title>
+    <title>Lista de Compras</title>
     <style>
         :root {
             --color-primary: #a8d8ea;
@@ -40,66 +40,86 @@
         
         header {
             background-color: var(--color-primary);
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             border-bottom: 2px solid var(--color-border);
         }
         
         h1 {
             color: var(--color-title);
-            margin-bottom: 8px;
-            font-size: 1.5rem;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .description {
-            font-size: 0.85rem;
+            font-size: 0.95rem;
             color: #555;
+            font-style: italic;
         }
 
-        /* Menú desplegable - mejorado para responsividad */
-        .menu-section {
-            padding: 10px 15px;
-            background-color: #f7f3ef;
-            border-bottom: 1px solid var(--color-border);
-            display: flex;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-            gap: 10px;
+        /* Menú lateral deslizante */
+        .menu-tab {
+            position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+            background: var(--color-primary); color: var(--color-title);
+            width: 50px; height: 70px; display: flex; align-items: center; justify-content: center;
+            border-radius: 12px 0 0 12px; cursor: pointer; z-index: 998;
+            box-shadow: -2px 2px 6px rgba(0,0,0,0.2); font-size: 1.5rem;
+            transition: background 0.3s, transform 0.2s;
+        }
+        .menu-tab:active { transform: translateY(-50%) scale(0.95); }
+        .menu-tab:hover { background: #8bc5d8; }
+
+        .menu-backdrop {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 999; opacity: 0; transition: opacity 0.3s;
+        }
+        .menu-backdrop.active { display: block; opacity: 1; }
+
+        .side-menu {
+            position: fixed; top: 0; right: 0;
+            width: 85vw; max-width: 340px; height: 100%;
+            background: white; box-shadow: -4px 0 15px rgba(0,0,0,0.15);
+            z-index: 1000; transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; padding: 20px;
+        }
+        .side-menu.open { transform: translateX(0); }
+
+        .menu-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border);
+        }
+        .menu-header span { font-weight: bold; color: var(--color-title); font-size: 1.2rem; }
+        .close-menu-btn {
+            background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #666; padding: 5px;
         }
 
-        .order-select {
-            padding: 8px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--color-border);
-            background-color: white;
-            font-size: 0.9rem;
-            cursor: pointer;
-            outline: none;
-            max-width: 100%;
-            width: auto;
-            /* Evitar desbordamiento */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .menu-btn {
+            width: 100%; margin: 8px 0; padding: 14px; border-radius: 8px;
+            text-align: left; font-size: 0.95rem; font-weight: 600;
+            transition: filter 0.2s, transform 0.1s;
         }
+        .menu-btn:active { transform: scale(0.98); }
+        .menu-btn:hover { filter: brightness(0.95); }
 
-        .order-select:focus {
-            border-color: var(--color-title);
-            box-shadow: 0 0 0 2px rgba(44, 90, 160, 0.2);
+        .total-display {
+            background: var(--color-secondary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
         }
-        
+        .total-display .label { font-size: 0.9rem; color: #555; }
+        .total-display .amount { font-size: 1.5rem; font-weight: bold; color: var(--color-title); margin-top: 5px; }
+
         .content {
             display: flex;
             flex-direction: column;
+            padding: 15px;
         }
         
         .shopping-list {
-            padding: 15px;
-            border-bottom: 2px dashed var(--color-border);
-        }
-        
-        .cart {
             padding: 15px;
         }
         
@@ -192,21 +212,6 @@
             align-self: center;
         }
         
-        .total-section {
-            margin-top: 15px;
-            padding: 12px;
-            background-color: var(--color-secondary);
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .total-amount {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-top: 5px;
-            color: var(--color-title);
-        }
-        
         button {
             background-color: var(--color-primary);
             color: var(--color-text);
@@ -225,83 +230,69 @@
             background-color: #8bc5d8;
         }
         
-        .calculate-btn {
-            background-color: var(--color-accent);
-            margin-right: 0;
-            margin-bottom: 8px;
-        }
-        
-        .calculate-btn:hover {
-            background-color: #a8d4a8;
-        }
-        
         .empty-cart {
             text-align: center;
             color: #888;
             padding: 15px;
             font-size: 0.9rem;
         }
-        
-        h2 {
-            font-size: 1.1rem;
-            margin-bottom: 12px;
-            color: var(--color-title);
-        }
 
-        /* NUEVA SECCIÓN: lista generada con checklist móvil */
-        .dynamic-list-container {
+        /* Pantalla de lista generada */
+        .generated-list-view {
+            display: none;
             padding: 15px;
-            background-color: #fef9e6;
-            border-top: 2px solid var(--color-border);
-            display: none; /* oculta por defecto */
         }
-
-        .dynamic-list-container h3 {
-            font-size: 1.1rem;
-            margin-bottom: 12px;
+        .generated-list-view.active {
+            display: block;
+        }
+        .generated-list-view h2 {
             color: var(--color-title);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            text-align: center;
         }
-
         .generated-checklist {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         .generated-checklist li {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid #e0c9f1;
             background-color: white;
             transition: background 0.2s;
         }
-
         .generated-checklist li:hover {
             background-color: #fff3e0;
         }
-
+        .generated-checklist li.completed {
+            order: 999;
+        }
+        .generated-checklist li.completed .task-text {
+            text-decoration: line-through;
+            color: #888;
+        }
         .generated-checklist .task-text {
             flex: 1;
             font-size: 1rem;
             word-break: break-word;
         }
-
-        .task-completed {
-            text-decoration: line-through;
-            color: #888;
+        .generated-checklist .task-qty {
+            font-size: 0.85rem;
+            color: #666;
+            min-width: 60px;
+            text-align: right;
         }
-        
-        .empty-checklist-msg {
-            text-align: center;
-            color: #888;
-            padding: 20px;
-            font-style: italic;
+        .back-btn {
+            background-color: var(--color-title);
+            color: white;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover {
+            background-color: #1a4480;
         }
 
         /* Media queries responsivo */
@@ -314,7 +305,7 @@
                 border-radius: 15px;
             }
             header {
-                padding: 20px;
+                padding: 25px;
             }
             h1 {
                 font-size: 2.2rem;
@@ -323,12 +314,6 @@
                 flex-direction: row;
             }
             .shopping-list {
-                flex: 1;
-                padding: 20px;
-                border-right: 2px dashed var(--color-border);
-                border-bottom: none;
-            }
-            .cart {
                 flex: 1;
                 padding: 20px;
             }
@@ -360,23 +345,9 @@
                 padding: 10px 15px;
                 font-size: 1rem;
             }
-            .calculate-btn {
-                margin-right: 10px;
-                margin-bottom: 0;
-            }
-            h2 {
-                font-size: 1.3rem;
-            }
-            .menu-section {
-                padding: 12px 25px;
-                justify-content: flex-end;
-            }
-            .dynamic-list-container {
-                padding: 20px;
-            }
+            .menu-tab { top: 80px; transform: none; }
         }
         
-        /* Ajustes extra para móviles pequeños (evitar desborde del select) */
         @media (max-width: 480px) {
             .menu-section {
                 justify-content: flex-start;
@@ -386,9 +357,6 @@
                 width: 100%;
                 white-space: normal;
                 font-size: 0.85rem;
-            }
-            .dynamic-list-container h3 {
-                font-size: 1rem;
             }
             .generated-checklist .task-text {
                 font-size: 0.9rem;
@@ -410,10 +378,6 @@
                 text-align: left;
                 padding-left: 0;
             }
-            .order-select {
-                font-size: 0.8rem;
-                padding: 6px 10px;
-            }
         }
     </style>
 </head>
@@ -421,44 +385,47 @@
 <div class="container">
     <header>
         <h1>Lista de Compras</h1>
-        <p class="description">Marca los productos que necesitas y luego ingresa los precios y cantidades en el supermercado</p>
+        <p class="description">Agregue precio y cantidad a comprar, y despliegue el menu para opciones.</p>
     </header>
 
-    <!-- Menú desplegable con órdenes -->
-    <div class="menu-section">
-        <select id="order-menu" class="order-select">
-            <option value="">🔽 Selecciona una orden</option>
-            <option value="generate">📝 Generar lista (desde productos seleccionados)</option>
-            <option value="hide">🙈 Ocultar lista generada</option>
-        </select>
+    <!-- Botón menú lateral -->
+    <div id="menu-tab" class="menu-tab" title="Opciones">☰</div>
+    <div id="menu-backdrop" class="menu-backdrop"></div>
+    
+    <!-- Menú lateral con opciones -->
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <span>Opciones</span>
+            <button id="close-menu" class="close-menu-btn">✕</button>
+        </div>
+        
+        <!-- Total de la lista de compras -->
+        <div class="total-display">
+            <div class="label">Total de la lista:</div>
+            <div class="amount" id="menu-total">$0.00</div>
+        </div>
+        
+        <!-- Botones de funciones -->
+        <button id="calculate-total" class="menu-btn">🔢 Calcular el total</button>
+        <button id="save-prices-btn" class="menu-btn">💾 Guardar precios</button>
+        <button id="generate-list" class="menu-btn">📝 Generar lista</button>
+        <button id="clear-cart" class="menu-btn">🗑️ Limpiar lista</button>
+        <button id="delete-all" class="menu-btn">🧹 Borrar todo</button>
     </div>
 
-    <div class="content">
+    <!-- Vista principal: lista de productos disponibles -->
+    <div id="main-view" class="content">
         <div class="shopping-list" id="shopping-list">
-            <h2>Productos Disponibles</h2>
-            <!-- Los productos se cargarán dinámicamente desde JSON -->
-        </div>
-
-        <div class="cart">
-            <h2>Carrito de Compras</h2>
-            <div id="cart-items">
-                <div class="empty-cart">No hay productos seleccionados</div>
-            </div>
-
-            <div class="total-section">
-                <div>Total de la compra:</div>
-                <div class="total-amount" id="total-amount">$0.00</div>
-                <button id="calculate-total" class="calculate-btn">Calcular Total</button>
-                <button id="clear-cart">Limpiar Carrito</button>
-            </div>
+            <!-- Los productos se cargarán dinámicamente -->
         </div>
     </div>
 
-    <!-- Contenedor para la lista dinámica que se genera con el menú -->
-    <div id="dynamic-list-wrapper" class="dynamic-list-container">
-        <h3>✅ Lista de productos seleccionados (checklist móvil)</h3>
+    <!-- Vista de lista generada -->
+    <div id="generated-list-view" class="generated-list-view">
+        <button id="back-to-main" class="back-btn">← Volver</button>
+        <h2>Artículos a comprar</h2>
         <ul id="generated-checklist" class="generated-checklist">
-            <!-- Aquí se inyectará la lista según los checkboxes marcados en la lista principal -->
+            <!-- Lista generada aquí -->
         </ul>
     </div>
 </div>
