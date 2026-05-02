@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Spinning Glowing Sphere</title>
+    <title>Lista de Compras Interactiva</title>
     <style>
         * {
             margin: 0;
@@ -12,252 +12,770 @@
         }
 
         body {
-            overflow: hidden;
-            background: #000;
-            cursor: grab;
-        }
-
-        body:active {
-            cursor: grabbing;
-        }
-
-        canvas {
-            display: block;
-        }
-
-        .info {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.7);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
             text-align: center;
-            pointer-events: none;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            padding: 30px;
+            font-size: 2.5em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .products-section {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .menu-section {
+            width: 350px;
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            position: relative;
+        }
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .product-category {
+            margin-bottom: 30px;
+        }
+
+        .category-title {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .product-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .product-item:hover {
+            border-color: #4CAF50;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .product-item.selected {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+
+        .product-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .product-inputs {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .product-inputs.active {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            width: 100px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .menu-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ecf0f1;
+        }
+
+        .total-section {
+            background: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .total-amount {
+            font-size: 2em;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        .total-label {
+            font-size: 1.1em;
+            color: #bdc3c7;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .menu-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .menu-btn:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .menu-btn.danger {
+            background: #e74c3c;
+        }
+
+        .menu-btn.danger:hover {
+            background: #c0392b;
+        }
+
+        .menu-btn.success {
+            background: #27ae60;
+        }
+
+        .menu-btn.success:hover {
+            background: #229954;
+        }
+
+        .checklist-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .checklist-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* --- INICIO DE LA MODIFICACIÓN --- */
+        #checklist-items {
+            display: flex;
+            flex-direction: column;
+        }
+        /* --- FIN DE LA MODIFICACIÓN --- */
+
+        .checklist-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .checklist-header h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            /* --- INICIO DE LA MODIFICACIÓN --- */
+            order: 0; /* Por defecto, todos los items tienen orden 0 */
+            /* --- FIN DE LA MODIFICACIÓN --- */
+        }
+
+        .checklist-item:hover {
+            background: #f8f9fa;
+        }
+
+        .checklist-item.checked {
+            background: #e8f5e8;
+            /* --- INICIO DE LA MODIFICACIÓN --- */
+            order: 1; /* Los items marcados tienen orden 1, moviéndolos al final */
+            /* --- FIN DE LA MODIFICACIÓN --- */
+        }
+
+        .checklist-item.checked .item-name {
+            text-decoration: line-through;
+            color: #7f8c8d;
+        }
+
+        .checklist-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .item-name {
+            flex: 1;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .item-quantity {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #7f8c8d;
+        }
+
+        .close-btn:hover {
+            color: #e74c3c;
+        }
+        
+        .add-product-form {
+            background: #ecf0f1;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .add-product-form input {
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .add-product-form button {
+            background: #16a085;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+        .add-product-form button:hover {
+            background: #117a65;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .menu-section {
+                width: 100%;
+                position: fixed;
+                top: 0;
+                right: -100%;
+                height: 100vh;
+                z-index: 999;
+                transition: right 0.3s ease;
+            }
+            
+            .menu-section.active {
+                right: 0;
+            }
+            
+            .menu-toggle {
+                display: block;
+            }
+            
+            .product-inputs.active {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .input-group input {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="info">Move your mouse to control the sphere rotation</div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <div class="container">
+        <div class="header">
+            Lista de Compras Interactiva
+        </div>
+        
+        <div class="main-content">
+            <div class="products-section">
+                <div class="add-product-form">
+                    <input type="text" id="new-product-name" placeholder="Nombre del nuevo producto">
+                    <button onclick="addNewProduct()">Agregar Producto</button>
+                </div>
+                <div id="products-container"></div>
+            </div>
+            
+            <div class="menu-section" id="menu-section">
+                <div class="menu-title">Menú de Opciones</div>
+                
+                <div class="total-section">
+                    <div class="total-amount" id="total-amount">$0.00</div>
+                    <div class="total-label">Monto Total</div>
+                </div>
+                
+                <div class="menu-buttons">
+                    <button class="menu-btn success" onclick="calculateTotal()">Calcular Total</button>
+                    <button class="menu-btn" onclick="generateList()">Generar Lista</button>
+                    <button class="menu-btn" onclick="savePrices()">Guardar Precios</button>
+                    <button class="menu-btn" onclick="clearList()">Limpiar Lista</button>
+                    <button class="menu-btn danger" onclick="clearEverything()">Borrar Todo</button>
+                    <button class="menu-btn" onclick="shareWithFriend()">Enviar a un Amigo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    
+    <div class="checklist-modal" id="checklist-modal">
+        <div class="checklist-content">
+            <button class="close-btn" onclick="closeChecklist()">&times;</button>
+            <div class="checklist-header">
+                <h2>Lista de Compras</h2>
+                <p>Marca los artículos que ya compraste</p>
+            </div>
+            <div id="checklist-items"></div>
+        </div>
+    </div>
+
     <script>
-        // Scene setup
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.5;
-        document.body.appendChild(renderer.domElement);
+        let products = [
+            { name: 'Pollo', category: 'CARNES' }, { name: 'Carne de res', category: 'CARNES' },
+            { name: 'Pescado', category: 'CARNES' }, { name: 'Cerdo', category: 'CARNES' },
+            { name: 'Jamón', category: 'CARNES' }, { name: 'Salchicha', category: 'CARNES' },
+            { name: 'Tomate', category: 'VEGETALES' }, { name: 'Cebolla', category: 'VEGETALES' },
+            { name: 'Pimiento', category: 'VEGETALES' }, { name: 'Zanahoria', category: 'VEGETALES' },
+            { name: 'Papa', category: 'VEGETALES' }, { name: 'Lechuga', category: 'VEGETALES' },
+            { name: 'Espinaca', category: 'VEGETALES' }, { name: 'Brócoli', category: 'VEGETALES' },
+            { name: 'Manzana', category: 'FRUTAS' }, { name: 'Banana', category: 'FRUTAS' },
+            { name: 'Naranja', category: 'FRUTAS' }, { name: 'Uva', category: 'FRUTAS' },
+            { name: 'Fresa', category: 'FRUTAS' }, { name: 'Pera', category: 'FRUTAS' },
+            { name: 'Mango', category: 'FRUTAS' }, { name: 'Arroz', category: 'CEREALES Y SEMILLAS' },
+            { name: 'Avena', category: 'CEREALES Y SEMILLAS' }, { name: 'Quinoa', category: 'CEREALES Y SEMILLAS' },
+            { name: 'Pan', category: 'CEREALES Y SEMILLAS' }, { name: 'Pasta', category: 'CEREALES Y SEMILLAS' },
+            { name: 'Lentejas', category: 'CEREALES Y SEMILLAS' }, { name: 'Garbanzos', category: 'CEREALES Y SEMILLAS' },
+            { name: 'Leche', category: 'OTROS' }, { name: 'Huevos', category: 'OTROS' },
+            { name: 'Queso', category: 'OTROS' }, { name: 'Yogurt', category: 'OTROS' },
+            { name: 'Mantequilla', category: 'OTROS' }, { name: 'Aceite', category: 'OTROS' },
+            { name: 'Sal', category: 'OTROS' }, { name: 'Azúcar', category: 'OTROS' },
+            { name: 'Café', category: 'OTROS' }, { name: 'Té', category: 'OTROS' },
+            { name: 'Jabón', category: 'LIMPIEZA Y OTROS' }, { name: 'Detergente', category: 'LIMPIEZA Y OTROS' },
+            { name: 'Shampoo', category: 'LIMPIEZA Y OTROS' }, { name: 'Papel higiénico', category: 'LIMPIEZA Y OTROS' }
+        ];
 
-        // Create sphere geometry with high detail
-        const sphereGeometry = new THREE.SphereGeometry(2, 128, 128);
+        let cart = {};
+        let savedPrices = {};
 
-        // Custom shader material for glowing effect
-        const vertexShader = `
-            varying vec3 vNormal;
-            varying vec3 vPosition;
-            varying vec2 vUv;
-            
-            void main() {
-                vNormal = normalize(normalMatrix * normal);
-                vPosition = position;
-                vUv = uv;
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-        `;
-
-        const fragmentShader = `
-            uniform float time;
-            uniform vec3 glowColor;
-            uniform vec3 baseColor;
-            varying vec3 vNormal;
-            varying vec3 vPosition;
-            varying vec2 vUv;
-            
-            void main() {
-                // Fresnel effect for edge glow
-                vec3 viewDirection = normalize(cameraPosition - vPosition);
-                float fresnel = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
-                fresnel = pow(fresnel, 3.0);
-                
-                // Animated color pattern
-                float pattern = sin(vPosition.x * 3.0 + time) * 
-                               sin(vPosition.y * 3.0 + time * 0.7) * 
-                               sin(vPosition.z * 3.0 + time * 0.5);
-                pattern = pattern * 0.5 + 0.5;
-                
-                // Combine colors
-                vec3 color = mix(baseColor, glowColor, fresnel);
-                color = mix(color, glowColor * 2.0, pattern * 0.3);
-                
-                // Add pulsing glow
-                float pulse = sin(time * 2.0) * 0.2 + 0.8;
-                color *= pulse;
-                
-                // Intense edge glow
-                color += glowColor * fresnel * 2.0;
-                
-                gl_FragColor = vec4(color, 1.0);
-            }
-        `;
-
-        const sphereMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                glowColor: { value: new THREE.Color(0x00ffff) },
-                baseColor: { value: new THREE.Color(0x0066ff) }
-            },
-            vertexShader: vertexShader,
-            fragmentShader: fragmentShader
-        });
-
-        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-        scene.add(sphere);
-
-        // Create outer glow sphere
-        const glowGeometry = new THREE.SphereGeometry(2.3, 64, 64);
-        const glowMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                glowColor: { value: new THREE.Color(0x00ffff) }
-            },
-            vertexShader: `
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normalize(normalMatrix * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float time;
-                uniform vec3 glowColor;
-                varying vec3 vNormal;
-                
-                void main() {
-                    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-                    float pulse = sin(time * 1.5) * 0.3 + 0.7;
-                    gl_FragColor = vec4(glowColor, intensity * pulse * 0.6);
-                }
-            `,
-            transparent: true,
-            side: THREE.BackSide,
-            blending: THREE.AdditiveBlending
-        });
-
-        const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
-        scene.add(glowSphere);
-
-        // Add particles around the sphere
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 2000;
-        const positions = new Float32Array(particlesCount * 3);
-        const colors = new Float32Array(particlesCount * 3);
-
-        for (let i = 0; i < particlesCount; i++) {
-            const radius = 3 + Math.random() * 5;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.random() * Math.PI;
-            
-            positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-            positions[i * 3 + 2] = radius * Math.cos(phi);
-            
-            colors[i * 3] = 0;
-            colors[i * 3 + 1] = 0.5 + Math.random() * 0.5;
-            colors[i * 3 + 2] = 1;
+        function loadCustomProducts() {
+            const customProducts = JSON.parse(localStorage.getItem('customProducts')) || [];
+            products = [...products, ...customProducts];
+            products = products.filter((product, index, self) =>
+                index === self.findIndex((p) => p.name === product.name)
+            );
         }
 
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        function addNewProduct() {
+            const nameInput = document.getElementById('new-product-name');
+            const newName = nameInput.value.trim();
 
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.05,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
+            if (newName === '') {
+                alert('Por favor, ingresa un nombre para el producto.');
+                return;
+            }
 
-        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-        scene.add(particles);
+            if (products.some(p => p.name.toLowerCase() === newName.toLowerCase())) {
+                alert('Este producto ya existe en la lista.');
+                return;
+            }
 
-        // Camera position
-        camera.position.z = 6;
+            const newProduct = { name: newName, category: 'PRODUCTOS AGREGADOS' };
+            
+            products.push(newProduct);
 
-        // Mouse tracking
-        let mouseX = 0;
-        let mouseY = 0;
-        let targetRotationX = 0;
-        let targetRotationY = 0;
-        let currentRotationX = 0;
-        let currentRotationY = 0;
+            const customProducts = JSON.parse(localStorage.getItem('customProducts')) || [];
+            customProducts.push(newProduct);
+            localStorage.setItem('customProducts', JSON.stringify(customProducts));
 
-        document.addEventListener('mousemove', (event) => {
-            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            targetRotationY = mouseX * Math.PI;
-            targetRotationX = mouseY * Math.PI * 0.5;
-        });
-
-        // Touch support
-        document.addEventListener('touchmove', (event) => {
-            event.preventDefault();
-            const touch = event.touches[0];
-            mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
-            mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
-            
-            targetRotationY = mouseX * Math.PI;
-            targetRotationX = mouseY * Math.PI * 0.5;
-        }, { passive: false });
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // Animation loop
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            const elapsedTime = clock.getElapsedTime();
-            
-            // Update shader uniforms
-            sphereMaterial.uniforms.time.value = elapsedTime;
-            glowMaterial.uniforms.time.value = elapsedTime;
-            
-            // Smooth rotation interpolation
-            currentRotationX += (targetRotationX - currentRotationX) * 0.05;
-            currentRotationY += (targetRotationY - currentRotationY) * 0.05;
-            
-            // Apply rotation with continuous spin
-            sphere.rotation.x = currentRotationX + elapsedTime * 0.2;
-            sphere.rotation.y = currentRotationY + elapsedTime * 0.3;
-            
-            glowSphere.rotation.x = sphere.rotation.x;
-            glowSphere.rotation.y = sphere.rotation.y;
-            
-            // Rotate particles slowly
-            particles.rotation.y = elapsedTime * 0.05;
-            particles.rotation.x = elapsedTime * 0.02;
-            
-            // Subtle camera movement
-            camera.position.x = Math.sin(elapsedTime * 0.1) * 0.5;
-            camera.position.y = Math.cos(elapsedTime * 0.15) * 0.3;
-            camera.lookAt(scene.position);
-            
-            renderer.render(scene, camera);
+            loadProducts();
+            nameInput.value = '';
+            alert(`'${newName}' ha sido agregado a la categoría 'PRODUCTOS AGREGADOS'.`);
         }
 
-        animate();
+        function createProductElement(product) {
+            const productDiv = document.createElement('div');
+            productDiv.className = 'product-item';
+            productDiv.onclick = () => toggleProduct(product.name);
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'product-name';
+            nameDiv.textContent = product.name;
+            productDiv.appendChild(nameDiv);
+            
+            const inputsDiv = document.createElement('div');
+            inputsDiv.className = 'product-inputs';
+            inputsDiv.id = `inputs-${product.name.replace(/\s+/g, '-')}`;
+            
+            inputsDiv.onclick = function(event) {
+                event.stopPropagation();
+            };
+
+            const priceGroup = document.createElement('div');
+            priceGroup.className = 'input-group';
+            const priceLabel = document.createElement('label');
+            priceLabel.textContent = 'Precio ($)';
+            const priceInput = document.createElement('input');
+            priceInput.type = 'number';
+            priceInput.step = '0.01';
+            priceInput.min = '0';
+            priceInput.placeholder = '0.00';
+            priceInput.id = `price-${product.name.replace(/\s+/g, '-')}`;
+            priceInput.oninput = () => updateItemTotal(product.name);
+            priceGroup.appendChild(priceLabel);
+            priceGroup.appendChild(priceInput);
+            
+            const quantityGroup = document.createElement('div');
+            quantityGroup.className = 'input-group';
+            const quantityLabel = document.createElement('label');
+            quantityLabel.textContent = 'Cantidad';
+            const quantityInput = document.createElement('input');
+            quantityInput.type = 'number';
+            quantityInput.min = '1';
+            quantityInput.value = '1';
+            quantityInput.placeholder = '1';
+            quantityInput.id = `quantity-${product.name.replace(/\s+/g, '-')}`;
+            quantityInput.oninput = () => updateItemTotal(product.name);
+            quantityGroup.appendChild(quantityLabel);
+            quantityGroup.appendChild(quantityInput);
+            
+            inputsDiv.appendChild(priceGroup);
+            inputsDiv.appendChild(quantityGroup);
+            productDiv.appendChild(inputsDiv);
+
+            return productDiv;
+        }
+
+        function loadProducts() {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '';
+            const categories = [...new Set(products.map(p => p.category))];
+            
+            categories.sort((a, b) => {
+                if (a === 'PRODUCTOS AGREGADOS') return 1;
+                if (b === 'PRODUCTOS AGREGADOS') return -1;
+                return a.localeCompare(b);
+            });
+
+            categories.forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'product-category';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'category-title';
+                titleDiv.textContent = category;
+                categoryDiv.appendChild(titleDiv);
+                
+                const categoryProducts = products.filter(p => p.category === category);
+                categoryProducts.forEach(product => {
+                    const productElement = createProductElement(product);
+                    categoryDiv.appendChild(productElement);
+                });
+                
+                container.appendChild(categoryDiv);
+            });
+            
+            loadSavedState();
+        }
+
+        function toggleProduct(productName) {
+            const productDiv = document.querySelector(`#inputs-${productName.replace(/\s+/g, '-')}`);
+            const productItem = productDiv.parentElement;
+            
+            if (productDiv.classList.contains('active')) {
+                productDiv.classList.remove('active');
+                productItem.classList.remove('selected');
+                delete cart[productName];
+            } else {
+                productDiv.classList.add('active');
+                productItem.classList.add('selected');
+                
+                const price = parseFloat(document.getElementById(`price-${productName.replace(/\s+/g, '-')}`).value) || 0;
+                const quantity = parseInt(document.getElementById(`quantity-${productName.replace(/\s+/g, '-')}`).value) || 1;
+                
+                cart[productName] = { price, quantity };
+            }
+            
+            calculateTotal();
+        }
+
+        function updateItemTotal(productName) {
+            if (cart[productName]) {
+                const price = parseFloat(document.getElementById(`price-${productName.replace(/\s+/g, '-')}`).value) || 0;
+                const quantity = parseInt(document.getElementById(`quantity-${productName.replace(/\s+/g, '-')}`).value) || 1;
+                
+                cart[productName] = { price, quantity };
+                calculateTotal();
+            }
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            Object.values(cart).forEach(item => {
+                total += item.price * item.quantity;
+            });
+            
+            document.getElementById('total-amount').textContent = `$${total.toFixed(2)}`;
+        }
+
+        function savePrices() {
+            Object.entries(cart).forEach(([name, item]) => {
+                if (item.price > 0) {
+                    savedPrices[name] = item.price;
+                }
+            });
+            
+            document.querySelectorAll('.product-item').forEach(item => {
+                const name = item.querySelector('.product-name').textContent;
+                const priceInput = item.querySelector(`input[id^="price-"]`);
+                const price = parseFloat(priceInput.value);
+                if (price > 0) {
+                    savedPrices[name] = price;
+                }
+            });
+
+            localStorage.setItem('savedPrices', JSON.stringify(savedPrices));
+            alert('Precios guardados exitosamente!');
+        }
+
+        function clearEverything() {
+            if (confirm('¿Estás seguro de que quieres borrar TODOS los datos, incluyendo precios y productos guardados?')) {
+                cart = {};
+                savedPrices = {};
+                localStorage.removeItem('savedPrices');
+                localStorage.removeItem('customProducts');
+                
+                window.location.reload();
+            }
+        }
+
+        function loadSavedState() {
+            const saved = localStorage.getItem('savedPrices');
+            if (saved) {
+                savedPrices = JSON.parse(saved);
+                
+                Object.entries(savedPrices).forEach(([name, price]) => {
+                    const priceInput = document.getElementById(`price-${name.replace(/\s+/g, '-')}`);
+                    if (priceInput) {
+                        priceInput.value = price;
+                    }
+                });
+            }
+        }
+
+        function initializeApp() {
+            loadCustomProducts();
+            loadProducts();
+        }
+
+        function shareWithFriend() {
+            const message = "¡Hola! Te comparto esta increíble aplicación de lista de compras que estoy usando. ¡Pruébala, es gratis y muy útil!";
+            const appUrl = window.location.href;
+            const fullMessage = `${message}\n\nEnlace: ${appUrl}`;
+            
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // --- INICIO DE LA MODIFICACIÓN ---
+        function generateList() {
+            const modal = document.getElementById('checklist-modal');
+            const container = document.getElementById('checklist-items');
+            
+            container.innerHTML = '';
+            
+            Object.entries(cart).forEach(([name, item]) => {
+                const checklistItem = document.createElement('div');
+                checklistItem.className = 'checklist-item';
+                // El evento de clic ahora llama a una función más robusta
+                checklistItem.onclick = () => toggleChecklistItem(checklistItem);
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'checklist-checkbox';
+                // Detenemos la propagación para que el clic en el checkbox no active el clic del div padre
+                checkbox.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleChecklistItem(checklistItem);
+                };
+                
+                const itemName = document.createElement('div');
+                itemName.className = 'item-name';
+                itemName.textContent = name;
+                
+                const itemQuantity = document.createElement('div');
+                itemQuantity.className = 'item-quantity';
+                itemQuantity.textContent = `Cantidad: ${item.quantity}`;
+                
+                checklistItem.appendChild(checkbox);
+                checklistItem.appendChild(itemName);
+                checklistItem.appendChild(itemQuantity);
+                
+                container.appendChild(checklistItem);
+            });
+            
+            modal.style.display = 'flex';
+        }
+
+        function toggleChecklistItem(item) {
+            const checkbox = item.querySelector('.checklist-checkbox');
+            const isChecked = item.classList.contains('checked');
+
+            // Invertimos el estado
+            checkbox.checked = !isChecked;
+            item.classList.toggle('checked');
+
+            // Movemos el elemento al final o al principio del contenedor
+            const parent = item.parentElement;
+            if (!isChecked) {
+                // Si no estaba marcado, ahora lo estará, así que lo movemos al final.
+                parent.appendChild(item);
+            } else {
+                // Si estaba marcado, ahora no lo estará, así que lo movemos al principio.
+                parent.prepend(item);
+            }
+        }
+        // --- FIN DE LA MODIFICACIÓN ---
+
+        function closeChecklist() { document.getElementById('checklist-modal').style.display = 'none'; }
+        
+        function clearList() {
+            if (confirm('¿Estás seguro de que quieres limpiar la lista actual?')) {
+                cart = {};
+                document.querySelectorAll('.product-inputs').forEach(inputs => {
+                    inputs.classList.remove('active');
+                    inputs.parentElement.classList.remove('selected');
+                });
+                document.querySelectorAll('input[type="number"]').forEach(input => {
+                    if (input.id.startsWith('quantity-')) { input.value = '1'; }
+                });
+                calculateTotal();
+            }
+        }
+        
+        function toggleMenu() { document.getElementById('menu-section').classList.toggle('active'); }
+        
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('menu-section');
+            const toggle = document.querySelector('.menu-toggle');
+            if (menu && toggle && !menu.contains(event.target) && !toggle.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+        
+        document.getElementById('checklist-modal').addEventListener('click', function(event) {
+            if (event.target === this) { closeChecklist(); }
+        });
+
+        initializeApp();
     </script>
 </body>
 </html>
